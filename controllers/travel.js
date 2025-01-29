@@ -4,8 +4,8 @@ const {BadRequestError,NotFoundError} = require('../errors')
 
 
 const getAllTravels = async (req,res)=>{
-    const travels = await Travel.find({createdBy: req.user.userId}).sort('createdAt')
-    res.status(StatusCodes.OK).json({travels,count:travels.lenght})
+    const travels = await Travel.find({createdBy: req.user.userId}).sort('-visitDate')
+    res.status(StatusCodes.OK).json({travels,count:travels.length})
 }
 const getTravel = async (req,res)=>{
     // const {
