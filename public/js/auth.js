@@ -1,5 +1,28 @@
- // Register user
- document.getElementById('registerForm')?.addEventListener('submit', async (event) => {
+import { showAlert } from './index.js';
+
+// Setup authentication link (login/logout toggle)
+export function setupAuth() {
+    document.addEventListener('DOMContentLoaded', () => {
+        const authLink = document.getElementById('authLink');
+
+        // Check if the user is logged in (based on token presence in local storage)
+        const token = localStorage.getItem('token');
+
+        if (token) {
+            // If logged in, change the text to "Logout"
+            authLink.innerHTML = `<a class="nav-link" href="#" id="logout">Logout</a>`;
+
+            // Add logout functionality
+            document.getElementById('logout').addEventListener('click', () => {
+                localStorage.removeItem('token'); // Remove token from local storage
+                window.location.href = 'login.html'; // Redirect to login page
+            });
+        }
+    });
+}
+
+// Register user
+export async function registerUser(event) {
     event.preventDefault(); // Prevent the default form submission
 
     const name = document.getElementById('name').value;
@@ -17,54 +40,53 @@
 
         if (!response.ok) {
             const errorData = await response.json();
-            alert(errorData.msg || 'Registration failed');
+            showAlert(errorData.msg || 'Registration failed','danger');
             return;
         }
 
         const data = await response.json();
-        alert(`Registration successful! Welcome, ${data.user.name}`);
+        showAlert(`Registration successful! Welcome, ${data.user.name}`,'success');
         // Store the token in localStorage
         localStorage.setItem('token', data.token);
-        
+
         window.location.href = 'index.html';
     } catch (error) {
         console.error('Error during registration:', error);
-        alert('An error occurred. Please try again later.');
+        showAlert('An error occurred. Please try again later.','warning');
     }
-});
+}
 
-//login user
-document.getElementById('loginForm')?.addEventListener('submit',async(event)=>{
-
+// Login user
+export async function loginUser(event) {
     event.preventDefault();
 
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
 
     try {
-        const response = await fetch('/api/v1/auth/login',{
+        const response = await fetch('/api/v1/auth/login', {
             method: 'POST',
-            headers:{
+            headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({email,password})
-        })
-       
-        
+            body: JSON.stringify({ email, password }),
+        });
+
         if (!response.ok) {
+        
             const errorData = await response.json();
-            alert(errorData.msg || 'Login failed');
+            showAlert(errorData.msg || 'Login failed', 'danger');
             return;
         }
-        const data = await response.json()
+
+        const data = await response.json();
 
         // Store the token in localStorage
         localStorage.setItem('token', data.token);
 
         window.location.href = 'index.html';
-
     } catch (error) {
-        console.error('Error during logging:', error);
-        alert('An error occurred. Please try again later.');
+        console.error('Error during login:', error);
+        showAlert('An error occurred. Please try again later.','danger');
     }
-})
+}
