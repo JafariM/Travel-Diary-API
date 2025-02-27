@@ -6,11 +6,13 @@ const TravelSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      minlength: [3,'Place name must be at least 3 characters'],
     },
     location: {
       type: String,
       required: true,
       trim: true,
+      minlength: [3,'Location must be at least 3 characters'],
     },
     visitDate: {
       type: Date,

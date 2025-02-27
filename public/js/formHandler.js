@@ -1,83 +1,112 @@
-import { renderTravelList } from './travel.js';
-import { showAlert } from './index.js';
+import { setAlert, showAlert } from './alertHandler.js';
 
-let formContainer, formTitle, submitButton, travelListContainer;
+let formTitle = document.getElementById('form-title');
+let submitButton = document.getElementById('submit-button');
+let placeNameInput = document.getElementById('placeName');
+let locationInput = document.getElementById('location');
+let visitDateInput = document.getElementById('visitDate');
+let descriptionInput = document.getElementById('description')
+
 let editingTravelId = null;
 
-export function toggleForm(view, travelId = null) {
-    formContainer = document.getElementById('form-container');
-    formTitle = document.getElementById('form-title');
-    submitButton = document.getElementById('submit-button');
-    travelListContainer = document.getElementById('travel-list');
+// Event Listener for Form Submission
+document.getElementById('travel-form')?.addEventListener('submit', handleSubmit);
 
-    document.getElementById('addTravel').style.display = 'none';
-    document.getElementById('travelHeader').style.display = 'none';
+//  Reset Form Inputs (Reuses Global Elements)
+function resetFormInputs() {
+    placeNameInput.value = '';
+    locationInput.value = '';
+    visitDateInput.value = '';
+    descriptionInput.value = '';
+}
+
+// Fetch Travel Data for Editing
+export async function loadTravelData(travelId) {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setAlert('Please login to edit the record', 'warning');
+            return;
+        }
+
+        const response = await fetch(`/api/v1/travels/${travelId}`, {
+            method: 'GET',
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            setAlert('Faild to fetch travel data','danger')
+            return;
+        }
+
+        const result = await response.json();
+        
+        placeNameInput.value = result.travel.placeName;
+        locationInput.value = result.travel.location;
+        visitDateInput.value = new Date(result.travel.visitDate).toISOString().split('T')[0];
+        descriptionInput.value = result.travel.description;
+    } catch (error) {
+        console.error('Error loading travel data:', error);
+        setAlert('An error occurred while loading travel data','danger')
+    }
+}
+
+// Toggle Between Add & Edit Form
+export function toggleForm(view, travelId = null) {
+    if (!formTitle || !submitButton) return; // Ensure elements exist
 
     if (view === 'add') {
         formTitle.innerText = 'Add Travel';
         submitButton.innerText = 'Add Travel';
         resetFormInputs();
-        editingTravelId = null;  // Reset editingTravelId when adding
-    } else if (view === 'edit') {
+        editingTravelId = null;
+    } else if (view === 'edit' && travelId) {
         formTitle.innerText = 'Edit Travel';
         submitButton.innerText = 'Update Travel';
-        editingTravelId = travelId; // Set editingTravelId to the passed ID
+        editingTravelId = travelId;
+        loadTravelData(travelId);
     }
-
-    formContainer.style.display = 'flex';
-    travelListContainer.style.display = 'none';
 }
 
-
-export function cancelForm() {
-    formContainer.style.display = 'none';
-    travelListContainer.style.display = 'block';
-    document.getElementById('addTravel').style.display = 'inline-block';
-    document.getElementById('travelHeader').style.display = 'block';
-
-    // Reset the editingTravelId
-    editingTravelId = null;
-}
-
-
+// Handle Form Submission (Reuses Global Inputs)
 export async function handleSubmit(event) {
     event.preventDefault();
 
-    const placeName = document.getElementById('placeName').value;
-    const location = document.getElementById('location').value;
-    const visitDate = document.getElementById('visitDate').value;
+    const placeName = placeNameInput.value.trim();
+    const location = locationInput.value.trim();
+    const visitDate = visitDateInput.value.trim();
+    const description = descriptionInput.value ? descriptionInput.value.trim() : '';
 
     const token = localStorage.getItem('token');
     if (!token) {
-        showAlert('You must be logged in to add or update a travel record.','warning');
+        setAlert('You must be logged in to add or update a travel record.', 'warning');
         return;
     }
 
-    const travelData = {
-        placeName,
-        location,
-        visitDate,
-    };
+    const travelData = { placeName, location, visitDate, description };
 
     try {
+        const isEditing = !!editingTravelId;
         let response;
 
-        // Check if we are editing an existing travel 
-        if (editingTravelId) { 
+        if (isEditing) {
             response = await fetch(`/api/v1/travels/${editingTravelId}`, {
-                method: 'PATCH', 
+                method: 'PATCH',
                 headers: {
-                    'Authorization': `Bearer ${token}`, // Send token for authentication
+                    Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(travelData),
             });
         } else {
-            // Adding a new travel
             response = await fetch('/api/v1/travels', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token}`, // Send token for authentication
+                    Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(travelData),
@@ -86,22 +115,40 @@ export async function handleSubmit(event) {
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.msg || 'Failed to save travel record');
+            setAlert(errorData.msg || 'Failed to save travel record','danger')
         }
+        cancelForm();
 
-        const result = await response.json();
+        setAlert(isEditing ? 'Travel record updated successfully!' : 'New travel record added successfully!', 'success')
 
-        cancelForm(); // Hide the form
-        await renderTravelList(); // Re-fetch the updated travel list from the server
+        // Redirect to the index page (this triggers the alert display)
+            window.location.href = 'index.html';
+
     } catch (error) {
         console.error('Error saving travel:', error);
-        showAlert('An error occurred while saving the travel record.','warning');
+
+        setAlert(error.message || 'An error occurred while saving the travel record.', 'danger');
     }
 }
 
+// Handle Form Cancellation
+export function cancelForm() {
+    resetFormInputs();
+    editingTravelId = null;
 
-function resetFormInputs() {
-    document.getElementById('placeName').value = '';
-    document.getElementById('location').value = '';
-    document.getElementById('visitDate').value = '';
+    if (window.location.pathname !== '/index.html') {
+        window.location.href = 'index.html';
+    }
 }
+
+// Auto-Load Form Based on URL Parameters
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const travelId = urlParams.get('edit');
+
+    if (travelId) {
+        toggleForm('edit', travelId);
+    } else {
+        toggleForm('add');
+    }
+});

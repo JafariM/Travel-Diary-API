@@ -3,10 +3,32 @@ const {StatusCodes} = require('http-status-codes')
 const {BadRequestError,NotFoundError} = require('../errors')
 
 
-const getAllTravels = async (req,res)=>{
-    const travels = await Travel.find({createdBy: req.user.userId}).sort('-visitDate')
-    res.status(StatusCodes.OK).json({travels,count:travels.length})
-}
+const getAllTravels = async (req, res) => {
+    const { page = 1, limit = 5 } = req.query;
+    const parsedLimit = parseInt(limit, 10) || 5; // Ensure it's a number
+    try {
+        const skip = (page - 1) * limit;
+
+        const travels = await Travel.find({ createdBy: req.user.userId })
+            .sort('-visitDate')
+            .skip(skip)
+            .limit(parsedLimit);
+
+        const totalTravels = await Travel.countDocuments({ createdBy: req.user.userId });
+        const totalPages = Math.ceil(totalTravels / parsedLimit);
+
+        res.status(StatusCodes.OK).json({
+            travels,
+            totalTravels,
+            totalPages,
+            currentPage: page,
+        });
+    } catch (error) {
+        console.error('Error fetching travels:', error);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ msg: 'Server error' });
+    }
+};
+
 const getTravel = async (req,res)=>{
     // const {
     //     user: { userId },
@@ -33,12 +55,10 @@ const createTravel = async (req,res)=>{
 }
 
 const updateTravel = async (req,res)=>{
-
     const traveId = req.params.id
     const userId = req.user.userId 
     const{placeName,location,visitDate} = req.body;
     
-
     if(placeName === "" || location === ""|| visitDate === ""){
         
         throw new BadRequestError('Place name, location and visit date can not be empty ')

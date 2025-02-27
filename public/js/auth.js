@@ -1,4 +1,17 @@
-import { showAlert } from './index.js';
+import { showAlert,setAlert } from './alertHandler.js';
+
+//event listener for login and register after DOM loaded
+document.addEventListener('DOMContentLoaded', () => {
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', loginUser);
+    }
+
+    const registerForm = document.getElementById('registerForm')
+    if(registerForm){
+        registerForm.addEventListener('submit',registerUser)
+    }
+});
 
 // Setup authentication link (login/logout toggle)
 export function setupAuth() {
@@ -28,7 +41,6 @@ export async function registerUser(event) {
     const name = document.getElementById('name').value;
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-
     try {
         const response = await fetch('/api/v1/auth/register', {
             method: 'POST',
@@ -40,19 +52,19 @@ export async function registerUser(event) {
 
         if (!response.ok) {
             const errorData = await response.json();
-            showAlert(errorData.msg || 'Registration failed','danger');
+            setAlert(errorData.msg || 'Registration failed','danger');
             return;
         }
 
         const data = await response.json();
-        showAlert(`Registration successful! Welcome, ${data.user.name}`,'success');
+        setAlert(`Registration successful! Welcome, ${data.user.name}`,'success');
         // Store the token in localStorage
         localStorage.setItem('token', data.token);
 
         window.location.href = 'index.html';
     } catch (error) {
         console.error('Error during registration:', error);
-        showAlert('An error occurred. Please try again later.','warning');
+        setAlert('An error occurred. Please try again later.','warning');
     }
 }
 

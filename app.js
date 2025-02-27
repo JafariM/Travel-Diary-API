@@ -3,6 +3,9 @@ require('express-async-errors');
 const express = require('express');
 const app = express();
 
+//location api
+const locationRoutes = require('./routes/locationRoutes');
+
 //security packages
 const helmet = require('helmet')
 const cors = require('cors')
@@ -40,6 +43,7 @@ app.use(xss())
 // routes
 app.use('/api/v1/auth',authRouter)
 app.use('/api/v1/travels',authenticateUser,travelRouter)
+app.use('/api/location', locationRoutes);
 
 app.use(notFoundMiddleware);
 app.use(errorHandlerMiddleware);
