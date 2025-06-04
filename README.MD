@@ -1,5 +1,5 @@
 #### Setup
-![Travel Diary Screenshot](./image/Travel Diary.png)
+![Travel Diary Screenshot](./image/TravelDiary.png)
 
 ```bash
 npm install && npm start
